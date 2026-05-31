@@ -4,37 +4,25 @@ on:
   workflow_dispatch:
     inputs:
       output_label:
-        description: "Label for this run (used in filenames)"
+        description: "Label for this run"
         required: true
-        default: "summer_2026"
-      allowed_months:
-        description: "Comma-separated months, e.g. 2026-07,2026-08"
-        required: true
-        default: "2026-07,2026-08"
-      nights_options:
-        description: "Comma-separated nights, e.g. 9,10,11"
-        required: true
-        default: "9,10,11"
-      destination_codes:
-        description: "Comma-separated destination airport codes, e.g. ALC,AGP,VLC,PMI,FAO"
-        required: true
-        default: "ALC,AGP,VLC,PMI,FAO,LIS,CTA,MLA"
+        default: "august_live_2026"
       total_budget:
         description: "Total budget in EUR"
         required: true
         default: "1500"
+      departure_airport:
+        description: "Departure airport code"
+        required: true
+        default: "AMS"
       adults:
         description: "Number of adults"
         required: true
         default: "2"
       top_shortlist_n:
-        description: "Number of shortlist items"
+        description: "Shortlist size"
         required: true
         default: "20"
-      departure_airport:
-        description: "Departure airport code"
-        required: true
-        default: "AMS"
 
 permissions:
   contents: read
@@ -48,17 +36,22 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+
       OUTPUT_LABEL: ${{ inputs.output_label }}
-      ALLOWED_MONTHS: ${{ inputs.allowed_months }}
-      NIGHTS_OPTIONS: ${{ inputs.nights_options }}
-      DESTINATION_CODES: ${{ inputs.destination_codes }}
       TOTAL_BUDGET: ${{ inputs.total_budget }}
+      DEPARTURE_AIRPORT: ${{ inputs.departure_airport }}
       ADULTS: ${{ inputs.adults }}
       TOP_SHORTLIST_N: ${{ inputs.top_shortlist_n }}
-      DEPARTURE_AIRPORT: ${{ inputs.departure_airport }}
 
-      USE_LIVE_STAY_SCRAPERS: "false"
-      USE_LIVE_FLIGHT_SOURCES: "false"
+      ALLOWED_MONTHS: "2026-08"
+      NIGHTS_OPTIONS: "10"
+      DESTINATION_FILTERS: "Antalya,Benidorm,Valencia"
+
+      USE_LIVE_STAY_SCRAPERS: "true"
+      USE_LIVE_FLIGHT_SOURCES: "true"
+
+      CHECKED_BAG_FEE_ESTIMATE_TOTAL: "70"
 
     steps:
       - name: Checkout repository
