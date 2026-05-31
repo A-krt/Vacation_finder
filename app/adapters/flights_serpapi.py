@@ -62,14 +62,14 @@ class SerpApiFlightAdapter(BaseFlightAdapter):
             if not flights:
                 continue
 
-            is_direct = len(flights) == 2 or len(item.get("layovers", [])) == 0
+            is_direct = len(item.get("layovers", [])) == 0
             if direct_only and not is_direct:
                 continue
 
             airline = flights[0].get("airline", "Unknown airline")
             base_price = float(item.get("price") or 0.0)
 
-            # To stay within free-tier limits, baggage is estimated instead of fetched via extra booking-option calls.
+            # Om binnen de gratis limiet te blijven gebruiken we een vaste schatting voor bagage.
             bag_fee = self.settings.checked_bag_fee_estimate_total if checked_bags_total > 0 else 0.0
             booking_fee = 0.0
             total_price = round(base_price + bag_fee + booking_fee, 2)
@@ -92,6 +92,10 @@ class SerpApiFlightAdapter(BaseFlightAdapter):
                 )
             )
 
-        logger.info("SerpApi flights gaf %s opties voor %s -> %s", len(options), origin, destination)
+        logger.info(
+            "SerpApi flights gaf %s opties voor %s -> %s",
+            len(options),
+            origin,
+            destination,
+        )
         return options
-``
