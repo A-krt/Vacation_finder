@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-_name: strfrom dataclasses import dataclass, field
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Optional
+
+
+@dataclass
+class ProviderAttempt:
+    provider_name: str
     success: bool
     blocked: bool = False
     results_count: int = 0
@@ -16,9 +23,3 @@ class SearchAudit:
 
     def add_attempt(self, attempt: ProviderAttempt) -> None:
         self.attempts.append(attempt)
-from datetime import datetime
-from typing import Optional
-
-
-@dataclass
-class ProviderAttempt:
