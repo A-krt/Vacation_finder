@@ -14,20 +14,48 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+_DESTINATION_ALIASES = {
+    "benidorm": "ALC",
+    "alicante": "ALC",
+    "alc": "ALC",
+    "valencia": "VLC",
+    "vlc": "VLC",
+    "antalya": "AYT",
+    "ayt": "AYT",
+}
+
+
+def _normalize_filter(value: str) -> str:
+    cleaned = value.strip().lower()
+    return _DESTINATION_ALIASES.get(cleaned, cleaned.upper())
+
 
 def _destination_matches(destination, filters: tuple[str, ...]) -> bool:
     if not filters:
         return True
 
-    normalized_filters = {item.strip().lower() for item in filters if item.strip()}
+    normalized_filters = {_normalize_filter(item) for item in filters if item.strip()}
     city = getattr(destination, "city", "").strip().lower()
-    airport = getattr(destination, "arrival_airport", "").strip().lower()
+    airport = getattr(destination, "arrival_airport", "").strip().upper()
 
-    return city in normalized_filters or airport in normalized_filters
+    return airport in normalized_filters or _normalize_filter(city) in normalized_filters
 
 
 def _get_active_destinations(settings) -> list:
-    return [destination for destination in DESTINATIONS if _destination_matches(destination, settings.destination_filters)]
+    active = [
+        destination
+        for destination in DESTINATIONS
+        if _destination_matches(destination, settings.destination_filters)
+    ]
+
+    logger.info(
+        "Actieve bestemmingen: %s",
+        ", ".join(
+            f"{getattr(d, 'city', '?')} ({getattr(d, 'arrival_airport', '?')})"
+            for d in active
+        ) or "geen",
+    )
+    return active
 
 
 def run_search(
