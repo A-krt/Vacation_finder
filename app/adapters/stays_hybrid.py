@@ -1,4 +1,40 @@
-from __future__ import annotationsfrom __future__ import(destination_code, checkin, checkout, adults)
+from __future__ import annotations
+
+from datetime import date, datetime
+from typing import Optional
+
+from app.adapters.stays_base import BaseStayAdapter
+from app.adapters.stays_mock import MockStayAdapter
+from app.adapters.stays_serpapi import SerpApiStayAdapter
+from app.config import Settings, get_settings
+from app.live_data.models import ProviderAttempt, SearchAudit
+from app.live_data.utils import dedupe_by_lowest_price, normalize_property_name
+from app.models import AccommodationOption
+from app.utils.logger import get_logger
+
+
+logger = get_logger(__name__)
+
+
+class HybridStayAdapter(BaseStayAdapter):
+    def __init__(self, settings: Settings | None = None) -> None:
+        self.settings = settings or get_settings()
+        self.last_audit: Optional[SearchAudit] = None
+
+    def search_stays(
+        self,
+        destination_code: str,
+        checkin: date,
+        checkout: date,
+        adults: int,
+    ) -> list[AccommodationOption]:
+        audit = SearchAudit(search_timestamp=datetime.utcnow(), category="stays")
+        providers = self._build_providers()
+        all_results: list[AccommodationOption] = []
+
+        for provider_name, provider in providers:
+            try:
+                results = provider.search_stays(destination_code, checkin, checkout, adults)
 
                 audit.add_attempt(
                     ProviderAttempt(
@@ -62,39 +98,3 @@ from __future__ import annotationsfrom __future__ import(destination_code, check
             providers.append(("mock", MockStayAdapter()))
 
         return providers
-
-
-from datetime import date, datetime
-from typing import Optional
-
-from app.adapters.stays_base import BaseStayAdapter
-from app.adapters.stays_mock import MockStayAdapter
-from app.adapters.stays_serpapi import SerpApiStayAdapter
-from app.config import Settings, get_settings
-from app.live_data.models import ProviderAttempt, SearchAudit
-from app.live_data.utils import dedupe_by_lowest_price, normalize_property_name
-from app.models import AccommodationOption
-from app.utils.logger import get_logger
-
-
-logger = get_logger(__name__)
-
-
-class HybridStayAdapter(BaseStayAdapter):
-    def __init__(self, settings: Settings | None = None) -> None:
-        self.settings = settings or get_settings()
-        self.last_audit: Optional[SearchAudit] = None
-
-    def search_stays(
-        self,
-        destination_code: str,
-        checkin: date,
-        checkout: date,
-        adults: int,
-    ) -> list[AccommodationOption]:
-        audit = SearchAudit(search_timestamp=datetime.utcnow(), category="stays")
-        providers = self._build_providers()
-        all_results: list[AccommodationOption] = []
-
-        for provider_name, provider in providers:
-            try:
