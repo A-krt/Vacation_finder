@@ -12,5 +12,10 @@ def write_csv_rows(rows: list[dict], output_path: Path) -> str:
         return str(output_path)
 
     fieldnames = list(rows[0].keys())
+
     with output_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.Dict
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return str(output_path)
