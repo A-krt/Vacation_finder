@@ -5,8 +5,8 @@ from app.adapters.stays_base import BaseStayAdapter
 from app.adapters.transfers_base import BaseTransferAdapter
 from app.config import get_settings
 from app.destinations.seed_list import DESTINATIONS
-from app.generators.date_generator import generate_trip_date_options
 from app.models import TripResult
+from app.generators.date_generator import generate_trip_date_options
 from app.services.matching_service import build_trip_results
 from app.services.scoring_service import calculate_price_score, calculate_value_score
 from app.utils.logger import get_logger
@@ -15,23 +15,32 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
+def _get_active_destinations(settings) -> list:
+    if not settings.destination_codes:
+        return DESTINATIONS
+
+    selected = {code.strip().upper() for code in settings.destination_codes}
+    return [destination for destination in DESTINATIONS if destination.arrival_airport.upper() in selected]
+
+
 def run_search(
     flight_adapter: BaseFlightAdapter,
     stay_adapter: BaseStayAdapter,
     transfer_adapter: BaseTransferAdapter,
 ) -> list[TripResult]:
     settings = get_settings()
+    active_destinations = _get_active_destinations(settings)
     date_options = generate_trip_date_options(settings.allowed_departure_months, settings.nights_options)
 
     logger.info(
         "Zoekrun gestart met %s bestemmingen en %s datumopties",
-        len(DESTINATIONS),
+        len(active_destinations),
         len(date_options),
     )
 
     results: list[TripResult] = []
 
-    for destination in DESTINATIONS:
+    for destination in active_destinations:
         for date_option in date_options:
             stays = stay_adapter.search_stays(
                 destination_code=destination.arrival_airport,
