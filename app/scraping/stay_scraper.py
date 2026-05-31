@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 from playwright.sync_api import BrowserContext, Locator, Page
 
 from app.scraping.booking_url_builder import build_booking_search_url
+from app.scraping.expedia_url_builder import build_expedia_search_url
 from app.scraping.parsers import (
     parse_hotel_stars,
     parse_price_to_float,
@@ -56,6 +57,14 @@ class StayScraper:
 
         if builder == "booking_search_results":
             return build_booking_search_url(
+                destination_query=destination_query,
+                checkin=checkin,
+                checkout=checkout,
+                adults=adults,
+            )
+
+        if builder == "expedia_search_results":
+            return build_expedia_search_url(
                 destination_query=destination_query,
                 checkin=checkin,
                 checkout=checkout,
@@ -169,7 +178,7 @@ class StayScraper:
             if self._text_contains(
                 card,
                 self.site_config.bed_text,
-                ["double", "tweepersoonsbed", "double bed"],
+                ["double", "tweepersoonsbed", "double bed", "queen bed", "king bed"],
             )
             else "unknown"
         )
