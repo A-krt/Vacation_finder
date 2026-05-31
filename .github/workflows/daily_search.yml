@@ -26,10 +26,10 @@ on:
       top_shortlist_n:
         description: "Shortlist size"
         required: true
-        default: "20"
+        default: "15"
 
       destination_filters:
-        description: "Destination airport codes, comma-separated (example: AYT,ALC,VLC)"
+        description: "Destination airport codes or city names, comma-separated"
         required: true
         default: "AYT,ALC,VLC"
 
@@ -37,6 +37,26 @@ on:
         description: "Only direct flights? (true/false)"
         required: true
         default: "false"
+
+      min_hotel_stars:
+        description: "Minimum hotel stars (0 disables the filter)"
+        required: true
+        default: "0"
+
+      min_review_10:
+        description: "Minimum review score out of 10 (0 disables the filter)"
+        required: true
+        default: "0"
+
+      require_private_bathroom:
+        description: "Require private bathroom? (true/false)"
+        required: true
+        default: "false"
+
+      require_bed_type:
+        description: "Required bed type (use 'any' to disable)"
+        required: true
+        default: "any"
 
 permissions:
   contents: read
@@ -63,10 +83,16 @@ jobs:
       DESTINATION_FILTERS: ${{ inputs.destination_filters }}
       DIRECT_FLIGHTS_ONLY: ${{ inputs.direct_flights_only }}
 
+      MIN_HOTEL_STARS: ${{ inputs.min_hotel_stars }}
+      MIN_REVIEW_10: ${{ inputs.min_review_10 }}
+      REQUIRE_PRIVATE_BATHROOM: ${{ inputs.require_private_bathroom }}
+      REQUIRE_BED_TYPE: ${{ inputs.require_bed_type }}
+
       USE_LIVE_STAY_SCRAPERS: "true"
       USE_LIVE_FLIGHT_SOURCES: "true"
 
       CHECKED_BAG_FEE_ESTIMATE_TOTAL: "70"
+      PROVIDER_MAX_RESULTS: "10"
 
     steps:
       - name: Checkout repository
