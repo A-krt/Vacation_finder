@@ -6,9 +6,9 @@ from typing import Optional
 from app.adapters.flights_base import BaseFlightAdapter
 from app.adapters.flights_mock import MockFlightAdapter
 from app.adapters.flights_serpapi import SerpApiFlightAdapter
+from app.config import Settings, get_settings
 from app.live_data.models import ProviderAttempt, SearchAudit
 from app.models import FlightOption
-from app.config import Settings, get_settings
 from app.utils.logger import get_logger
 
 
@@ -19,6 +19,7 @@ class HybridFlightAdapter(BaseFlightAdapter):
     def __init__(self, settings: Settings | None = None) -> None:
         self.settings = settings or get_settings()
         self.last_audit: Optional[SearchAudit] = None
+        self._cache: dict[tuple, list[FlightOption]] = {}
 
     def search_flights(
         self,
@@ -30,7 +31,23 @@ class HybridFlightAdapter(BaseFlightAdapter):
         direct_only: bool,
         checked_bags_total: int,
     ) -> list[FlightOption]:
-        audit = SearchAudit(search_timestamp=datetime.utcnow(), category="flights")
+        key = (
+            origin,
+            destination,
+            departure_date.isoformat(),
+            return_date.isoformat(),
+            adults,
+            direct_only,
+            checked_bags_total,
+        )
+
+        if key in self._cache:
+            return self._cache[key]
+
+        audit = self.last_audit or SearchAudit(
+            search_timestamp=datetime.utcnow(),
+            category="flights",
+        )
         providers = self._build_providers()
 
         for provider_name, provider in providers:
@@ -56,6 +73,7 @@ class HybridFlightAdapter(BaseFlightAdapter):
 
                 if results:
                     self.last_audit = audit
+                    self._cache[key] = results
                     return results
 
             except Exception as exc:
@@ -91,6 +109,7 @@ class HybridFlightAdapter(BaseFlightAdapter):
         )
 
         self.last_audit = audit
+        self._cache[key] = mock_results
         return mock_results
 
     def _build_providers(self):
