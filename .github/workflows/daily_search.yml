@@ -1,21 +1,64 @@
-name: Vacation Finder Daily Search
+name: Vacation Finder Seasonal Shortlist
 
 on:
   workflow_dispatch:
-  schedule:
-    # 08:00 UTC = 10:00 Amsterdam during summer time (July/August)
-    - cron: '0 8 * * *'
+    inputs:
+      output_label:
+        description: "Label for this run (used in filenames)"
+        required: true
+        default: "summer_2026"
+      allowed_months:
+        description: "Comma-separated months, e.g. 2026-07,2026-08"
+        required: true
+        default: "2026-07,2026-08"
+      nights_options:
+        description: "Comma-separated nights, e.g. 9,10,11"
+        required: true
+        default: "9,10,11"
+      destination_codes:
+        description: "Comma-separated destination airport codes, e.g. ALC,AGP,VLC,PMI,FAO"
+        required: true
+        default: "ALC,AGP,VLC,PMI,FAO,LIS,CTA,MLA"
+      total_budget:
+        description: "Total budget in EUR"
+        required: true
+        default: "1500"
+      adults:
+        description: "Number of adults"
+        required: true
+        default: "2"
+      top_shortlist_n:
+        description: "Number of shortlist items"
+        required: true
+        default: "20"
+      departure_airport:
+        description: "Departure airport code"
+        required: true
+        default: "AMS"
 
 permissions:
   contents: read
 
 concurrency:
-  group: vacation-finder-${{ github.ref }}
+  group: vacation-finder-seasonal-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test-and-run:
+  seasonal-shortlist:
     runs-on: ubuntu-latest
+
+    env:
+      OUTPUT_LABEL: ${{ inputs.output_label }}
+      ALLOWED_MONTHS: ${{ inputs.allowed_months }}
+      NIGHTS_OPTIONS: ${{ inputs.nights_options }}
+      DESTINATION_CODES: ${{ inputs.destination_codes }}
+      TOTAL_BUDGET: ${{ inputs.total_budget }}
+      ADULTS: ${{ inputs.adults }}
+      TOP_SHORTLIST_N: ${{ inputs.top_shortlist_n }}
+      DEPARTURE_AIRPORT: ${{ inputs.departure_airport }}
+
+      USE_LIVE_STAY_SCRAPERS: "false"
+      USE_LIVE_FLIGHT_SOURCES: "false"
 
     steps:
       - name: Checkout repository
@@ -31,35 +74,44 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Install Playwright Chromium
-        run: |
-          python -m playwright install --with-deps chromium
-
       - name: Run tests
         run: python -m pytest
 
-      - name: Run browser smoke check
-        run: python playwright_smoke.py
-
-      - name: Run vacation search
+      - name: Run seasonal shortlist search
         run: python run.py
 
-      - name: Upload CSV results
+      - name: Upload full results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vacation-results
+          name: seasonal-full-results
           path: output/results/*.csv
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Upload screenshots and probe metadata
+      - name: Upload shortlist
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: browser-evidence
-          path: |
-            output/screenshots/*.png
-            output/screenshots/*.json
+          name: seasonal-shortlist
+          path: output/shortlists/*.csv
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload verification links
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seasonal-verification-links
+          path: output/verification/*.csv
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload provider audits
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seasonal-provider-audits
+          path: output/audit/*.json
           if-no-files-found: warn
           retention-days: 14
