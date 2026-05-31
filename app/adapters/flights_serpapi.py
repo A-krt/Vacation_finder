@@ -87,7 +87,7 @@ class SerpApiFlightAdapter(BaseFlightAdapter):
                     bag_fee=bag_fee,
                     booking_fee=booking_fee,
                     total_price=total_price,
-                    checked_bag_included=checked_bags_total == 0,
+                    checked_bag_included=True,
                     source="serpapi_google_flights",
                 )
             )
