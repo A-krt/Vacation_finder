@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from app.models import Destination
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class DestinationSeed:
+    city: str
+    country: str
+    arrival_airport: str
 
 
 DESTINATIONS = [
