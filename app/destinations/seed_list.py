@@ -8,7 +8,7 @@ class DestinationSeed:
     city: str
     country: str
     arrival_airport: str
-
+    fit_score: float = 0.0
 
 DESTINATIONS = [
     DestinationSeed(city="Alicante", country="Spain", arrival_airport="ALC"),
