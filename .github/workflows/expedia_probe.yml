@@ -1,0 +1,44 @@
+name: Expedia Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  expedia-probe:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Chromium
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Run Expedia probe
+        run: python expedia_probe.py
+
+      - name: Upload Expedia evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: expedia-probe-evidence
+          path: |
+            output/screenshots/*.png
+            output/screenshots/*.json
+            output/screenshots/*.html
+          if-no-files-found: warn
+          retention-days: 14
