@@ -68,12 +68,13 @@ class Settings:
 
     allowed_departure_months: Tuple[tuple[int, int], ...] = _env_months_tuple(
         "ALLOWED_MONTHS",
-        ((2026, 7), (2026, 8)),
+        ((2026, 8),),
     )
-    nights_options: Tuple[int, ...] = _env_int_tuple("NIGHTS_OPTIONS", (9, 10, 11))
+    nights_options: Tuple[int, ...] = _env_int_tuple("NIGHTS_OPTIONS", (10,))
 
     direct_flights_only: bool = True
     checked_bags_total: int = 1
+    checked_bag_fee_estimate_total: float = _env_float("CHECKED_BAG_FEE_ESTIMATE_TOTAL", 70.0)
 
     allowed_accommodation_types: tuple[str, ...] = ("hotel", "apartment", "holiday_home")
     require_private_bathroom: bool = True
@@ -105,17 +106,27 @@ class Settings:
     screenshot_dir: Path = Path("output/screenshots")
     logs_dir: Path = Path("logs")
 
-    csv_prefix: str = os.getenv("OUTPUT_LABEL", "vacation_results")
+    csv_prefix: str = os.getenv("OUTPUT_LABEL", "august_live_results")
 
-    destination_codes: tuple[str, ...] = _env_csv_tuple("DESTINATION_CODES", tuple())
+    destination_filters: tuple[str, ...] = _env_csv_tuple(
+        "DESTINATION_FILTERS",
+        ("Antalya", "Benidorm", "Valencia"),
+    )
 
+    # Default OFF so tests/workflows without a key still run safely.
     use_live_stay_scrapers: bool = _env_bool("USE_LIVE_STAY_SCRAPERS", False)
     use_live_flight_sources: bool = _env_bool("USE_LIVE_FLIGHT_SOURCES", False)
 
-    stay_provider_order: tuple[str, ...] = ("booking", "expedia", "mock")
-    flight_provider_order: tuple[str, ...] = ("mock",)
+    stay_provider_order: tuple[str, ...] = ("serpapi", "mock")
+    flight_provider_order: tuple[str, ...] = ("serpapi", "mock")
 
-    provider_max_results: int = 20
+    provider_max_results: int = 10
+
+    serpapi_api_key: str | None = os.getenv("SERPAPI_API_KEY")
+    serpapi_timeout_seconds: int = _env_int("SERPAPI_TIMEOUT_SECONDS", 40)
+    serpapi_currency: str = os.getenv("SERPAPI_CURRENCY", "EUR")
+    serpapi_language: str = os.getenv("SERPAPI_LANGUAGE", "en")
+    serpapi_country: str = os.getenv("SERPAPI_COUNTRY", "nl")
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "budget_per_person", round(self.total_budget / max(self.adults, 1), 2))
