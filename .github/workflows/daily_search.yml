@@ -46,7 +46,7 @@ jobs:
 
       ALLOWED_MONTHS: "2026-08"
       NIGHTS_OPTIONS: "10"
-      DESTINATION_FILTERS: "Antalya,Benidorm,Valencia"
+      DESTINATION_FILTERS: "AYT,ALC,VLC"
 
       USE_LIVE_STAY_SCRAPERS: "true"
       USE_LIVE_FLIGHT_SOURCES: "true"
