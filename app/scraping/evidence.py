@@ -26,3 +26,9 @@ def write_json(data: Any, output_path: Path) -> Path:
     serializable = asdict(data) if is_dataclass(data) else data
     output_path.write_text(json.dumps(serializable, ensure_ascii=False, indent=2), encoding="utf-8")
     return output_path
+
+
+def write_text(text: str, output_path: Path) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(text, encoding="utf-8")
+    return output_path
