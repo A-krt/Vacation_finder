@@ -1,15 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date
-from typing import Optional
-from urllib.parse import urlencode
-
-from playwright.sync_api import BrowserContext, Locator, Page
-
-from app.scraping.booking_url_builder import build_booking_search_url
-from app.scraping.parsers import parse_hotel_stars, parse_price_to_float, parse_review_score
-from app.scraping.selectors import StaySiteConfig
+from dataclasses import dat import StaySiteConfigfrom dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -32,7 +23,13 @@ class StayScraper:
     def __init__(self, site_config: StaySiteConfig) -> None:
         self.site_config = site_config
 
-    def build_search_url(self, destination_query: str, checkin: date, checkout: date, adults: int) -> str:
+    def build_search_url(
+        self,
+        destination_query: str,
+        checkin: date,
+        checkout: date,
+        adults: int,
+    ) -> str:
         builder = self.site_config.search_url_builder_name
 
         if builder == "template":
@@ -45,7 +42,12 @@ class StayScraper:
             return f"{self.site_config.base_url}?{urlencode(params)}"
 
         if builder == "booking_search_results":
-            return build_booking_search_url(destination_query, checkin, checkout, adults)
+            return build_booking_search_url(
+                destination_query=destination_query,
+                checkin=checkin,
+                checkout=checkout,
+                adults=adults,
+            )
 
         raise ValueError(f"Unknown search URL builder: {builder}")
 
@@ -59,7 +61,12 @@ class StayScraper:
         max_results: int = 20,
     ) -> list[RawStayResult]:
         page = context.new_page()
-        search_url = self.build_search_url(destination_query, checkin, checkout, adults)
+        search_url = self.build_search_url(
+            destination_query=destination_query,
+            checkin=checkin,
+            checkout=checkout,
+            adults=adults,
+        )
 
         page.goto(search_url, wait_until="domcontentloaded")
         self._handle_cookie_banner(page)
@@ -74,25 +81,34 @@ class StayScraper:
             return
 
         locator = page.locator(self.site_config.cookie_accept_button)
-        if locator.count() > 0:
-            try:
+
+        try:
+            if locator.count() > 0:
                 locator.first.click(timeout=4_000)
-            except Exception:
-                pass
+        except Exception:
+            pass
 
     def _maybe_load_more(self, page: Page) -> None:
-        if self.site_config.load_more_button:
-            locator = page.locator(self.site_config.load_more_button)
+        if not self.site_config.load_more_button:
+            return
+
+        locator = page.locator(self.site_config.load_more_button)
+
+        try:
             if locator.count() > 0:
-                try:
-                    locator.first.click(timeout=5_000)
-                except Exception:
-                    pass
+                locator.first.click(timeout=5_000)
+        except Exception:
+            pass
 
     def _parse_result_cards(self, page: Page, max_results: int = 20) -> list[RawStayResult]:
-        page.locator(self.site_config.result_card).first.wait_for(timeout=20_000)
+        locator = page.locator(self.site_config.result_card)
 
-        cards = page.locator(self.site_config.result_card)
+        try:
+            locator.first.wait_for(timeout=20_000)
+        except Exception:
+            return []
+
+        cards = locator
         count = min(cards.count(), max_results)
 
         results: list[RawStayResult] = []
@@ -104,15 +120,27 @@ class StayScraper:
 
     def _parse_card(self, card: Locator) -> RawStayResult:
         property_name = self._safe_inner_text(card, self.site_config.property_name) or "Unknown property"
-        property_type = self._safe_inner_text(card, self.site_config.property_type) if self.site_config.property_type else None
+        property_type = (
+            self._safe_inner_text(card, self.site_config.property_type)
+            if self.site_config.property_type
+            else None
+        )
 
         raw_price_text = self._safe_inner_text(card, self.site_config.total_price)
         total_price = parse_price_to_float(raw_price_text)
 
-        raw_review_text = self._safe_inner_text(card, self.site_config.review_text) if self.site_config.review_text else None
+        raw_review_text = (
+            self._safe_inner_text(card, self.site_config.review_text)
+            if self.site_config.review_text
+            else None
+        )
         review_score_5, review_score_10 = parse_review_score(raw_review_text)
 
-        raw_stars_text = self._safe_inner_text(card, self.site_config.stars_text) if self.site_config.stars_text else None
+        raw_stars_text = (
+            self._safe_inner_text(card, self.site_config.stars_text)
+            if self.site_config.stars_text
+            else None
+        )
         hotel_stars = parse_hotel_stars(raw_stars_text)
 
         private_bathroom = self._text_contains(
@@ -121,13 +149,21 @@ class StayScraper:
             ["private bathroom", "eigen badkamer"],
         )
 
-        bed_type = "double" if self._text_contains(
-            card,
-            self.site_config.bed_text,
-            ["double", "tweepersoonsbed", "double bed"],
-        ) else "unknown"
+        bed_type = (
+            "double"
+            if self._text_contains(
+                card,
+                self.site_config.bed_text,
+                ["double", "tweepersoonsbed", "double bed"],
+            )
+            else "unknown"
+        )
 
-        url = self._safe_attribute(card, self.site_config.property_link, "href") if self.site_config.property_link else None
+        url = (
+            self._safe_attribute(card, self.site_config.property_link, "href")
+            if self.site_config.property_link
+            else None
+        )
 
         return RawStayResult(
             property_name=property_name,
@@ -149,23 +185,28 @@ class StayScraper:
             return None
 
         locator = root.locator(selector)
-        if locator.count() == 0:
-            return None
 
         try:
+            if locator.count() == 0:
+                return None
             return locator.first.inner_text(timeout=3_000).strip()
         except Exception:
             return None
 
-    def _safe_attribute(self, root: Locator, selector: str | None, attribute: str) -> Optional[str]:
+    def _safe_attribute(
+        self,
+        root: Locator,
+        selector: str | None,
+        attribute: str,
+    ) -> Optional[str]:
         if not selector:
             return None
 
         locator = root.locator(selector)
-        if locator.count() == 0:
-            return None
 
         try:
+            if locator.count() == 0:
+                return None
             return locator.first.get_attribute(attribute, timeout=3_000)
         except Exception:
             return None
@@ -177,3 +218,16 @@ class StayScraper:
 
         lowered = text.lower()
         return any(needle.lower() in lowered for needle in needles)
+
+from datetime import date
+from typing import Optional
+from urllib.parse import urlencode
+
+from playwright.sync_api import BrowserContext, Locator, Page
+
+from app.scraping.booking_url_builder import build_booking_search_url
+from app.scraping.parsers import (
+    parse_hotel_stars,
+    parse_price_to_float,
+    parse_review_score,
+)
