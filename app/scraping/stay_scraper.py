@@ -1,6 +1,19 @@
 from __future__ import annotations
 
-from dataclasses import dat import StaySiteConfigfrom dataclasses import dataclass
+from dataclasses import dataclass
+from datetime import date
+from typing import Optional
+from urllib.parse import urlencode
+
+from playwright.sync_api import BrowserContext, Locator, Page
+
+from app.scraping.booking_url_builder import build_booking_search_url
+from app.scraping.parsers import (
+    parse_hotel_stars,
+    parse_price_to_float,
+    parse_review_score,
+)
+from app.scraping.selectors import StaySiteConfig
 
 
 @dataclass(frozen=True)
@@ -61,6 +74,7 @@ class StayScraper:
         max_results: int = 20,
     ) -> list[RawStayResult]:
         page = context.new_page()
+
         search_url = self.build_search_url(
             destination_query=destination_query,
             checkin=checkin,
@@ -120,6 +134,7 @@ class StayScraper:
 
     def _parse_card(self, card: Locator) -> RawStayResult:
         property_name = self._safe_inner_text(card, self.site_config.property_name) or "Unknown property"
+
         property_type = (
             self._safe_inner_text(card, self.site_config.property_type)
             if self.site_config.property_type
@@ -218,16 +233,3 @@ class StayScraper:
 
         lowered = text.lower()
         return any(needle.lower() in lowered for needle in needles)
-
-from datetime import date
-from typing import Optional
-from urllib.parse import urlencode
-
-from playwright.sync_api import BrowserContext, Locator, Page
-
-from app.scraping.booking_url_builder import build_booking_search_url
-from app.scraping.parsers import (
-    parse_hotel_stars,
-    parse_price_to_float,
-    parse_review_score,
-)
