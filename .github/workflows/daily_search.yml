@@ -1,28 +1,40 @@
-name: Vacation Finder Seasonal Shortlist
-
-on:
+name: Vacation Finder Seasonal Shortlistname: Vacationon:
   workflow_dispatch:
     inputs:
       output_label:
         description: "Label for this run"
         required: true
         default: "august_live_2026"
+
       total_budget:
         description: "Total budget in EUR"
         required: true
         default: "1500"
+
       departure_airport:
         description: "Departure airport code"
         required: true
         default: "AMS"
+
       adults:
         description: "Number of adults"
         required: true
         default: "2"
+
       top_shortlist_n:
         description: "Shortlist size"
         required: true
         default: "20"
+
+      destination_filters:
+        description: "Destination airport codes, comma-separated (example: AYT,ALC,VLC)"
+        required: true
+        default: "AYT,ALC,VLC"
+
+      direct_flights_only:
+        description: "Only direct flights? (true/false)"
+        required: true
+        default: "true"
 
 permissions:
   contents: read
@@ -46,7 +58,8 @@ jobs:
 
       ALLOWED_MONTHS: "2026-08"
       NIGHTS_OPTIONS: "10"
-      DESTINATION_FILTERS: "AYT,ALC,VLC"
+      DESTINATION_FILTERS: ${{ inputs.destination_filters }}
+      DIRECT_FLIGHTS_ONLY: ${{ inputs.direct_flights_only }}
 
       USE_LIVE_STAY_SCRAPERS: "true"
       USE_LIVE_FLIGHT_SOURCES: "true"
