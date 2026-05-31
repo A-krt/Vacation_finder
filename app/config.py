@@ -33,6 +33,7 @@ class Settings:
     top_results_terminal: int = 10
     timezone_name: str = "Europe/Amsterdam"
     output_dir: Path = Path("output/results")
+    screenshot_dir: Path = Path("output/screenshots")
     logs_dir: Path = Path("logs")
     csv_prefix: str = "vacation_results"
 
