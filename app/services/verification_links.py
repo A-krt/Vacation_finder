@@ -1,10 +1,18 @@
-from __future__ import annotationsfrom __future__ import annotations, urlencode
+from __future__ import annotations
+
+from pathlib import Path
+from urllib.parse import quote_plus, urlencode
 
 from app.models import TripResult
 from app.utils.csv_utils import write_csv_rows
 
 
-def build_booking_verification_url(destination_city: str, checkin: str, checkout: str, adults: int) -> str:
+def build_booking_verification_url(
+    destination_city: str,
+    checkin: str,
+    checkout: str,
+    adults: int,
+) -> str:
     params = {
         "ss": destination_city,
         "checkin": checkin,
@@ -17,7 +25,12 @@ def build_booking_verification_url(destination_city: str, checkin: str, checkout
     return f"https://www.booking.com/searchresults.html?{urlencode(params)}"
 
 
-def build_expedia_verification_url(destination_city: str, checkin: str, checkout: str, adults: int) -> str:
+def build_expedia_verification_url(
+    destination_city: str,
+    checkin: str,
+    checkout: str,
+    adults: int,
+) -> str:
     params = {
         "destination": destination_city,
         "startDate": checkin,
@@ -28,7 +41,11 @@ def build_expedia_verification_url(destination_city: str, checkin: str, checkout
     return f"https://www.expedia.com/Hotel-Search?{urlencode(params)}"
 
 
-def build_google_hotels_verification_url(destination_city: str, checkin: str, checkout: str) -> str:
+def build_google_hotels_verification_url(
+    destination_city: str,
+    checkin: str,
+    checkout: str,
+) -> str:
     query = f"{destination_city} hotels {checkin} {checkout}"
     return f"https://www.google.com/travel/hotels?hl=en&q={quote_plus(query)}"
 
@@ -44,7 +61,10 @@ def build_google_flights_verification_url(
     return f"https://www.google.com/search?q={quote_plus(query)}"
 
 
-def build_google_maps_verification_url(property_name: str, destination_city: str) -> str:
+def build_google_maps_verification_url(
+    property_name: str,
+    destination_city: str,
+) -> str:
     query = f"{property_name} {destination_city}"
     return f"https://www.google.com/maps/search/{quote_plus(query)}"
 
@@ -72,8 +92,8 @@ def create_shortlist_rows(results: list[TripResult], top_n: int) -> list[dict]:
                 "destination_fit_score": result.destination_fit_score,
                 "price_score": result.price_score,
                 "value_score": result.value_score,
-                "stay_source": result.accommodation.source,
-                "flight_source": result.flight.source,
+                "stay_source": getattr(result.accommodation, "source", ""),
+                "flight_source": getattr(result.flight, "source", ""),
             }
         )
 
@@ -86,6 +106,7 @@ def create_verification_rows(results: list[TripResult], top_n: int) -> list[dict
     for result in results[:top_n]:
         checkin = result.departure_date.isoformat()
         checkout = result.return_date.isoformat()
+        adults = getattr(result.flight, "adults", 2)
 
         rows.append(
             {
@@ -104,13 +125,13 @@ def create_verification_rows(results: list[TripResult], top_n: int) -> list[dict
                     result.destination_city,
                     checkin,
                     checkout,
-                    result.flight.adults,
+                    adults,
                 ),
                 "expedia_verification_url": build_expedia_verification_url(
                     result.destination_city,
                     checkin,
                     checkout,
-                    result.flight.adults,
+                    adults,
                 ),
                 "google_hotels_verification_url": build_google_hotels_verification_url(
                     result.destination_city,
@@ -122,7 +143,7 @@ def create_verification_rows(results: list[TripResult], top_n: int) -> list[dict
                     result.destination_city,
                     checkin,
                     checkout,
-                    result.flight.adults,
+                    adults,
                 ),
                 "google_maps_property_url": build_google_maps_verification_url(
                     result.accommodation.property_name,
@@ -140,6 +161,3 @@ def export_shortlist_to_csv(rows: list[dict], output_path: Path | str) -> str:
 
 def export_verification_links_to_csv(rows: list[dict], output_path: Path | str) -> str:
     return write_csv_rows(rows, Path(output_path))
-``
-
-from pathlib import Path
