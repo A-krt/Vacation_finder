@@ -6,7 +6,17 @@ on:
       output_label:
         description: "Label for this run"
         required: true
-        default: "august_live_2026"
+        default: "live_search"
+
+      target_year:
+        description: "Year (example: 2026)"
+        required: true
+        default: "2026"
+
+      target_month:
+        description: "Month in 2 digits (example: 07 or 08)"
+        required: true
+        default: "07"
 
       total_budget:
         description: "Total budget in EUR"
@@ -78,7 +88,7 @@ jobs:
       ADULTS: ${{ inputs.adults }}
       TOP_SHORTLIST_N: ${{ inputs.top_shortlist_n }}
 
-      ALLOWED_MONTHS: "2026-08"
+      ALLOWED_MONTHS: ${{ format('{0}-{1}', inputs.target_year, inputs.target_month) }}
       NIGHTS_OPTIONS: "10"
       DESTINATION_FILTERS: ${{ inputs.destination_filters }}
       DIRECT_FLIGHTS_ONLY: ${{ inputs.direct_flights_only }}
