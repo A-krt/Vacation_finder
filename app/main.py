@@ -7,4 +7,5 @@ def main() -> None:
     run_daily_job()
 
 
-if __name__ == "__main
+if __name__ == "__main__":
+    main()
