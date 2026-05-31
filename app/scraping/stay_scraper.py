@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 
 from playwright.sync_api import BrowserContext, Locator, Page
 
+from app.scraping.booking_url_builder import build_booking_search_url
 from app.scraping.parsers import parse_hotel_stars, parse_price_to_float, parse_review_score
 from app.scraping.selectors import StaySiteConfig
 
@@ -31,37 +32,34 @@ class StayScraper:
     def __init__(self, site_config: StaySiteConfig) -> None:
         self.site_config = site_config
 
-    def build_search_url(
-        self,
-        destination_code: str,
-        checkin: date,
-        checkout: date,
-        adults: int,
-    ) -> str:
+    def build_search_url(self, destination_query: str, checkin: date, checkout: date, adults: int) -> str:
         builder = self.site_config.search_url_builder_name
 
         if builder == "template":
             params = {
-                "destination": destination_code,
+                "destination": destination_query,
                 "checkin": checkin.isoformat(),
                 "checkout": checkout.isoformat(),
                 "adults": adults,
             }
             return f"{self.site_config.base_url}?{urlencode(params)}"
 
+        if builder == "booking_search_results":
+            return build_booking_search_url(destination_query, checkin, checkout, adults)
+
         raise ValueError(f"Unknown search URL builder: {builder}")
 
     def scrape(
         self,
         context: BrowserContext,
-        destination_code: str,
+        destination_query: str,
         checkin: date,
         checkout: date,
         adults: int,
         max_results: int = 20,
     ) -> list[RawStayResult]:
         page = context.new_page()
-        search_url = self.build_search_url(destination_code, checkin, checkout, adults)
+        search_url = self.build_search_url(destination_query, checkin, checkout, adults)
 
         page.goto(search_url, wait_until="domcontentloaded")
         self._handle_cookie_banner(page)
