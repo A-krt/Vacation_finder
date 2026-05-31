@@ -5,9 +5,10 @@ from typing import Optional
 
 from app.adapters.flights_base import BaseFlightAdapter
 from app.adapters.flights_mock import MockFlightAdapter
-from app.config import Settings, get_settings
+from app.adapters.flights_serpapi import SerpApiFlightAdapter
 from app.live_data.models import ProviderAttempt, SearchAudit
 from app.models import FlightOption
+from app.config import Settings, get_settings
 from app.utils.logger import get_logger
 
 
@@ -30,8 +31,46 @@ class HybridFlightAdapter(BaseFlightAdapter):
         checked_bags_total: int,
     ) -> list[FlightOption]:
         audit = SearchAudit(search_timestamp=datetime.utcnow(), category="flights")
+        providers = self._build_providers()
 
-        results = MockFlightAdapter().search_flights(
+        for provider_name, provider in providers:
+            try:
+                results = provider.search_flights(
+                    origin=origin,
+                    destination=destination,
+                    departure_date=departure_date,
+                    return_date=return_date,
+                    adults=adults,
+                    direct_only=direct_only,
+                    checked_bags_total=checked_bags_total,
+                )
+
+                audit.add_attempt(
+                    ProviderAttempt(
+                        provider_name=provider_name,
+                        success=True,
+                        blocked=False,
+                        results_count=len(results),
+                    )
+                )
+
+                if results:
+                    self.last_audit = audit
+                    return results
+
+            except Exception as exc:
+                audit.add_attempt(
+                    ProviderAttempt(
+                        provider_name=provider_name,
+                        success=False,
+                        blocked=False,
+                        results_count=0,
+                        error_message=str(exc),
+                    )
+                )
+                logger.warning("Flight provider %s faalde: %s", provider_name, exc)
+
+        mock_results = MockFlightAdapter().search_flights(
             origin=origin,
             destination=destination,
             departure_date=departure_date,
@@ -43,14 +82,27 @@ class HybridFlightAdapter(BaseFlightAdapter):
 
         audit.add_attempt(
             ProviderAttempt(
-                provider_name="mock",
+                provider_name="mock-fallback",
                 success=True,
                 blocked=False,
-                results_count=len(results),
-                notes="Flights blijven voorlopig mock totdat een stabiele live bron is gekozen.",
+                results_count=len(mock_results),
+                notes="Fallback omdat live flight provider geen resultaten gaf.",
             )
         )
 
         self.last_audit = audit
-        logger.info("Flight provider mock gaf %s resultaten terug", len(results))
-        return results
+        return mock_results
+
+    def _build_providers(self):
+        providers = []
+
+        if self.settings.use_live_flight_sources:
+            for name in self.settings.flight_provider_order:
+                if name == "serpapi":
+                    providers.append((name, SerpApiFlightAdapter(self.settings)))
+                elif name == "mock":
+                    providers.append((name, MockFlightAdapter()))
+        else:
+            providers.append(("mock", MockFlightAdapter()))
+
+        return providers
