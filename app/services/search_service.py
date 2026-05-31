@@ -15,12 +15,19 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-def _get_active_destinations(settings) -> list:
-    if not settings.destination_codes:
-        return DESTINATIONS
+def _destination_matches(destination, filters: tuple[str, ...]) -> bool:
+    if not filters:
+        return True
 
-    selected = {code.strip().upper() for code in settings.destination_codes}
-    return [destination for destination in DESTINATIONS if destination.arrival_airport.upper() in selected]
+    normalized_filters = {item.strip().lower() for item in filters if item.strip()}
+    city = getattr(destination, "city", "").strip().lower()
+    airport = getattr(destination, "arrival_airport", "").strip().lower()
+
+    return city in normalized_filters or airport in normalized_filters
+
+
+def _get_active_destinations(settings) -> list:
+    return [destination for destination in DESTINATIONS if _destination_matches(destination, settings.destination_filters)]
 
 
 def run_search(
