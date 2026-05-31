@@ -1,0 +1,44 @@
+name: Booking Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  booking-probe:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright Chromium
+        run: |
+          python -m playwright install --with-deps chromium
+
+      - name: Run booking probe
+        run: python booking_probe.py
+
+      - name: Upload booking evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: booking-probe-evidence
+          path: |
+            output/screenshots/*.png
+            output/screenshots/*.json
+            output/screenshots/*.html
+          if-no-files-found: warn
+          retention-days: 14
