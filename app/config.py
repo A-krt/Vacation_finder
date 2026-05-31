@@ -8,7 +8,7 @@ from typing import Tuple
 
 def _env_bool(name: str, default: bool) -> bool:
     value = os.getenv(name)
-    if value is None:
+    if value is None or value.strip() == "":
         return default
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
@@ -41,10 +41,7 @@ def _env_int_tuple(name: str, default: tuple[int, ...]) -> tuple[int, ...]:
     return tuple(int(item.strip()) for item in value.split(",") if item.strip())
 
 
-def _env_months_tuple(
-    name: str,
-    default: tuple[tuple[int, int], ...],
-) -> tuple[tuple[int, int], ...]:
+def _env_months_tuple(name: str, default: tuple[tuple[int, int], ...]) -> tuple[tuple[int, int], ...]:
     value = os.getenv(name)
     if value is None or value.strip() == "":
         return default
@@ -59,11 +56,22 @@ def _env_months_tuple(
     return tuple(results)
 
 
+def _env_optional_text(name: str, default: str | None = None) -> str | None:
+    value = os.getenv(name)
+    if value is None:
+        return default
+
+    cleaned = value.strip()
+    if cleaned.lower() in {"", "none", "null", "any", "all", "no_filter"}:
+        return None
+    return cleaned
+
+
 @dataclass(frozen=True)
 class Settings:
     departure_airport: str = os.getenv("DEPARTURE_AIRPORT", "AMS")
     adults: int = _env_int("ADULTS", 2)
-    total_budget: float = _env_float("TOTAL_BUDGET", 1500.0)
+    total_budget: float = _env_float("TOTAL_BUDGET", 2200.0)
     budget_per_person: float = field(init=False)
 
     allowed_departure_months: Tuple[tuple[int, int], ...] = _env_months_tuple(
@@ -72,16 +80,16 @@ class Settings:
     )
     nights_options: Tuple[int, ...] = _env_int_tuple("NIGHTS_OPTIONS", (10,))
 
-    direct_flights_only: bool = True
-    checked_bags_total: int = 1
+    direct_flights_only: bool = _env_bool("DIRECT_FLIGHTS_ONLY", False)
+    checked_bags_total: int = _env_int("CHECKED_BAGS_TOTAL", 1)
     checked_bag_fee_estimate_total: float = _env_float("CHECKED_BAG_FEE_ESTIMATE_TOTAL", 70.0)
 
     allowed_accommodation_types: tuple[str, ...] = ("hotel", "apartment", "holiday_home")
-    require_private_bathroom: bool = True
-    require_bed_type: str = "double"
-    min_hotel_stars: float = 4.0
-    min_review_5: float = 4.0
-    min_review_10: float = 8.0
+    require_private_bathroom: bool = _env_bool("REQUIRE_PRIVATE_BATHROOM", False)
+    require_bed_type: str | None = _env_optional_text("REQUIRE_BED_TYPE", None)
+    min_hotel_stars: float = _env_float("MIN_HOTEL_STARS", 0.0)
+    min_review_5: float = _env_float("MIN_REVIEW_5", 0.0)
+    min_review_10: float = _env_float("MIN_REVIEW_10", 0.0)
 
     include_transfers: bool = True
     include_booking_fees: bool = True
@@ -95,7 +103,7 @@ class Settings:
     )
 
     top_results_terminal: int = 10
-    top_shortlist_n: int = _env_int("TOP_SHORTLIST_N", 20)
+    top_shortlist_n: int = _env_int("TOP_SHORTLIST_N", 15)
 
     timezone_name: str = "Europe/Amsterdam"
 
@@ -110,17 +118,16 @@ class Settings:
 
     destination_filters: tuple[str, ...] = _env_csv_tuple(
         "DESTINATION_FILTERS",
-        ("Antalya", "Benidorm", "Valencia"),
+        ("AYT", "ALC", "VLC"),
     )
 
-    # Default OFF so tests/workflows without a key still run safely.
-    use_live_stay_scrapers: bool = _env_bool("USE_LIVE_STAY_SCRAPERS", False)
-    use_live_flight_sources: bool = _env_bool("USE_LIVE_FLIGHT_SOURCES", False)
+    use_live_stay_scrapers: bool = _env_bool("USE_LIVE_STAY_SCRAPERS", True)
+    use_live_flight_sources: bool = _env_bool("USE_LIVE_FLIGHT_SOURCES", True)
 
     stay_provider_order: tuple[str, ...] = ("serpapi", "mock")
     flight_provider_order: tuple[str, ...] = ("serpapi", "mock")
 
-    provider_max_results: int = 10
+    provider_max_results: int = _env_int("PROVIDER_MAX_RESULTS", 10)
 
     serpapi_api_key: str | None = os.getenv("SERPAPI_API_KEY")
     serpapi_timeout_seconds: int = _env_int("SERPAPI_TIMEOUT_SECONDS", 40)
